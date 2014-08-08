@@ -37,6 +37,8 @@
 
 @interface MessageComposerView : UIView<UITextViewDelegate>
 @property(nonatomic, strong) id<MessageComposerViewDelegate> delegate;
+// maximum height of TextView. default is -1, and the height is not restricted.
+@property(nonatomic) float maximumHeightOfTextView;
 // alternative initializer that allows the setting of the offset that the MessageComposerView will have
 // fromt the keyboard and the bottom of the screen.
 - (id)initWithFrame:(CGRect)frame andKeyboardOffset:(int)offset;

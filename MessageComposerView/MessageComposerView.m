@@ -52,6 +52,7 @@ int keyboardOffset;
     if (self) {
         // Initialization code
         keyboardOffset = offset;
+        self.maximumHeightOfTextView = -1;
         
         // alloc necessary elements
         self.sendButton = [[UIButton alloc] initWithFrame:CGRectZero];
@@ -126,6 +127,9 @@ int keyboardOffset;
     CGFloat fixedWidth = self.messageTextView.frame.size.width;
     CGSize oldSize = self.messageTextView.frame.size;
     CGSize newSize = [self.messageTextView sizeThatFits:CGSizeMake(fixedWidth, MAXFLOAT)];
+    if (newSize.height > self.maximumHeightOfTextView) {
+        newSize.height = self.maximumHeightOfTextView;
+    }
     
     if (oldSize.height == newSize.height) {
         // In cases where the height remains the same after a rotation (AKA number of lines does not change)
@@ -203,6 +207,36 @@ int keyboardOffset;
     }
 }
 
+// To solve iOS7 issues.
+// See http://justabunchoftyping.com/fix-for-ios7-uitextview-issues
+- (void)textViewDidChangeSelection:(UITextView *)textView {
+    if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 7.0) {
+        [textView scrollRangeToVisible:textView.selectedRange];
+    }
+}
+
+// To solve iOS7 issues.
+// See http://justabunchoftyping.com/fix-for-ios7-uitextview-issues
+- (void)textViewDidChange:(UITextView *)textView {
+    // caret disappears only when positive value is set to maximumHeightOfTextView
+    if (self.maximumHeightOfTextView > 0 && textView.frame.size.height >= self.maximumHeightOfTextView && [[[UIDevice currentDevice] systemVersion] floatValue] >= 7.0) {
+        CGRect line = [textView caretRectForPosition:textView.selectedTextRange.start];
+        CGFloat overflow = line.origin.y + line.size.height -
+                (textView.contentOffset.y + textView.bounds.size.height - textView.contentInset.bottom - textView.contentInset.top);
+        if (overflow > 0) {
+            // We are at the bottom of the visible text and introduced
+            // a line feed, scroll down (iOS 7 does not do it)
+            // Scroll caret to visible area
+            CGPoint offset = textView.contentOffset;
+            offset.y += overflow + 7; // leave 7 pixels margin
+            // Cannot animate with setContentOffset:animated:
+            // or caret will not appear
+            [UIView animateWithDuration:.1 animations:^{
+                [textView setContentOffset:offset];
+            }];
+        }
+    }
+}
 
 #pragma mark - Keyboard Notifications
 - (void)keyboardWillShow:(NSNotification*)notification {
@@ -233,6 +267,9 @@ int keyboardOffset;
     // Using messageTextView to calculate height of text causes cursor jump issue. To avoid it, hiddenTextView is used.
     self.hiddenTextView.text = text;
     CGSize newSize = [self.hiddenTextView sizeThatFits:CGSizeMake(fixedWidth, MAXFLOAT)];
+    if (self.maximumHeightOfTextView > 0 && newSize.height > self.maximumHeightOfTextView) {
+        newSize.height = self.maximumHeightOfTextView;
+    }
 
     // If the height doesn't need to change skip reconfiguration.
     if (oldSize.height == newSize.height) {
