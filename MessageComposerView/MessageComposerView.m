@@ -25,6 +25,8 @@
 @interface MessageComposerView()
 @property(nonatomic, strong) IBOutlet UITextView *messageTextView;
 @property(nonatomic, strong) IBOutlet UIButton *sendButton;
+// hidden UITextView to calculate height of text
+@property(nonatomic, strong) UITextView *hiddenTextView;
 @property(nonatomic) float keyboardHeight;
 @end
 
@@ -55,13 +57,17 @@ int keyboardOffset;
         self.sendButton = [[UIButton alloc] initWithFrame:CGRectZero];
         [self.sendButton addTarget:self action:@selector(sendClicked:) forControlEvents:UIControlEventTouchUpInside];
         self.messageTextView = [[UITextView alloc] initWithFrame:CGRectZero];
-        
+        self.hiddenTextView = [[UITextView alloc] initWithFrame:CGRectZero];
+        self.hiddenTextView.hidden = YES;
+        self.hiddenTextView.userInteractionEnabled = NO;
+
         // configure elements
         [self setup];
         
         // insert elements above MessageComposerView
         [self insertSubview:self.sendButton aboveSubview:self];
         [self insertSubview:self.messageTextView aboveSubview:self];
+        [self insertSubview:self.hiddenTextView aboveSubview:self];
     }
     return self;
 }
@@ -108,6 +114,7 @@ int keyboardOffset;
     self.messageTextView.layer.cornerRadius = 5;
     self.messageTextView.font = [UIFont systemFontOfSize:14];
     self.messageTextView.delegate = self;
+    self.hiddenTextView.font = self.messageTextView.font;
     
     [self addNotifications];
     [self resizeTextViewForText:@"" animated:NO];
@@ -161,7 +168,7 @@ int keyboardOffset;
 - (void)textViewTextDidChange:(NSNotification*)notification {
     NSString* newText = self.messageTextView.text;
     [self resizeTextViewForText:newText animated:YES];
-    
+
     if (self.delegate && [self.delegate respondsToSelector:@selector(messageComposerUserTyping)])
         [self.delegate messageComposerUserTyping];
 }
@@ -222,8 +229,11 @@ int keyboardOffset;
 - (void)resizeTextViewForText:(NSString*)text animated:(BOOL)animated {
     CGFloat fixedWidth = self.messageTextView.frame.size.width;
     CGSize oldSize = self.messageTextView.frame.size;
-    CGSize newSize = [self.messageTextView sizeThatFits:CGSizeMake(fixedWidth, MAXFLOAT)];
-    
+
+    // Using messageTextView to calculate height of text causes cursor jump issue. To avoid it, hiddenTextView is used.
+    self.hiddenTextView.text = text;
+    CGSize newSize = [self.hiddenTextView sizeThatFits:CGSizeMake(fixedWidth, MAXFLOAT)];
+
     // If the height doesn't need to change skip reconfiguration.
     if (oldSize.height == newSize.height) {
         return;
