@@ -32,11 +32,12 @@
 
 @implementation MessageComposerView
 
-const int kComposerBackgroundTopPadding = 10;
-const int kComposerBackgroundRightPadding = 10;
-const int kComposerBackgroundBottomPadding = 10;
-const int kComposerBackgroundLeftPadding = 10;
-const int kComposerTextViewButtonBetweenPadding = 10;
+// kComposerBackgroundTopPadding is used as a minimum value of top padding.
+float kComposerBackgroundTopPadding = 10;
+const float kComposerBackgroundRightPadding = 10;
+const float kComposerBackgroundBottomPadding = 10;
+const float kComposerBackgroundLeftPadding = 10;
+const float kComposerTextViewButtonBetweenPadding = 10;
 
 // Default animation time for 5 <= iOS <= 7. Should be overwritten by first keyboard notification.
 float keyboardAnimationDuration = 0.25;
@@ -52,7 +53,10 @@ int keyboardOffset;
     if (self) {
         // Initialization code
         keyboardOffset = offset;
+
         self.maximumHeightOfTextView = -1;
+        kComposerBackgroundTopPadding = MAX(kComposerBackgroundTopPadding, frame.size.height - kComposerBackgroundBottomPadding - 34);
+
         
         // alloc necessary elements
         self.sendButton = [[UIButton alloc] initWithFrame:CGRectZero];
@@ -93,7 +97,7 @@ int keyboardOffset;
     sendButtonFrame.size.width = 50;
     sendButtonFrame.size.height = 34;
     sendButtonFrame.origin.x = self.frame.size.width - kComposerBackgroundRightPadding - sendButtonFrame.size.width;
-    sendButtonFrame.origin.y = kComposerBackgroundRightPadding;
+    sendButtonFrame.origin.y = self.bounds.size.height - (kComposerBackgroundBottomPadding + sendButtonFrame.size.height);
     self.sendButton.frame = sendButtonFrame;
     self.sendButton.autoresizingMask = UIViewAutoresizingFlexibleBottomMargin | UIViewAutoresizingFlexibleLeftMargin;
     self.sendButton.layer.cornerRadius = 5;
@@ -324,6 +328,8 @@ int keyboardOffset;
     if(self.delegate) {
         [self.delegate messageComposerSendMessageClickedWithMessage:self.messageTextView.text];
     }
+    
+    
     
     [self.messageTextView setText:@""];
     // Manually trigger the textViewDidChange method as setting the text when the messageTextView is not first responder the
